@@ -135,6 +135,11 @@ app.get("/spin", async (req, res) => {
         return `Attributes (${type}) (+${amount})`;
     }
 
+    function getIncreaseLimitPrize() {
+        const amount = Math.floor(Math.random() * 6) + 5; // 5-10
+        return `Increase Attribute Limits (+${amount})`;
+    }
+
     let prize;
     const roll = Math.random();
 
@@ -153,6 +158,8 @@ app.get("/spin", async (req, res) => {
         } else if (basePrize.startsWith("Attributes")) {
             const type = basePrize.match(/\(([^)]+)\)/)[1];
             prize = getAttributePrize(type);
+        } else if (basePrize === "Increase Attribute Limits") {
+            prize = getIncreaseLimitPrize();
         } else {
             prize = basePrize;
         }
