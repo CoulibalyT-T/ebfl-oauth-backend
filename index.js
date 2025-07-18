@@ -18,10 +18,16 @@ const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.set('trust proxy', 1); // enable secure cookies behind proxy
+
 app.use(session({
     secret: process.env.SESSION_SECRET || "secret",
     resave: false,
     saveUninitialized: false,
+    cookie: {
+        sameSite: 'none',
+        secure: true
+    }
 }));
 
 const prizes = [
