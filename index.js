@@ -73,4 +73,4 @@ app.get('/user', (req, res) => {
     res.json({ authenticated: true, user: req.session.user });
 });
 
-app.listen(port, () => console.log(\`EBFL OAuth Backend running on port \${port}\`));
+app.listen(port, () => console.log(`EBFL OAuth Backend running on port ${port}`));
