@@ -92,17 +92,32 @@ app.get("/spin", async (req, res) => {
     if (!req.session.user || !req.session.user.isGM) return res.status(401).send("Unauthorized");
 
     function getEPPrize() {
-        const rareChance = Math.random();
-        if (rareChance < 0.10) {
-            return `EP (${Math.floor(Math.random() * 6) + 15})`; // 15-20
-        } else {
-            return `EP (${Math.floor(Math.random() * 14) + 1})`; // 1-14
-        }
+        return Math.random() < 0.10
+            ? `EP (${Math.floor(Math.random() * 6) + 15})` // 15-20
+            : `EP (${Math.floor(Math.random() * 14) + 1})`; // 1-14
+    }
+
+    function getECPrize() {
+        return Math.random() < 0.20
+            ? `EC (${Math.floor(Math.random() * 3) + 3})` // 3-5
+            : `EC (${Math.floor(Math.random() * 2) + 1})`; // 1-2
+    }
+
+    function getDiscordCoinPrize() {
+        return Math.random() < 0.10
+            ? `Discord Coin (${Math.floor(Math.random() * 501) + 1500})` // 1500-2000
+            : `Discord Coin (${Math.floor(Math.random() * 501) + 500})`; // 500-1000
     }
 
     let prize;
-    if (Math.random() < 0.2) { // 20% chance for EP
+    const roll = Math.random();
+
+    if (roll < 0.20) { // 20% for EP
         prize = getEPPrize();
+    } else if (roll < 0.40) { // 20% for EC
+        prize = getECPrize();
+    } else if (roll < 0.60) { // 20% for Discord Coin
+        prize = getDiscordCoinPrize();
     } else {
         prize = prizes[Math.floor(Math.random() * prizes.length)];
     }
