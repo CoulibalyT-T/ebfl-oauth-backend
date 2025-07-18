@@ -31,7 +31,7 @@ app.use(session({
 }));
 
 const prizes = [
-    "EC", "Discord Coin", "Badge Card (Bronze)", "Badge Card (Silver)",
+    "Badge Card (Bronze)", "Badge Card (Silver)",
     "Badge Card (Gold)", "Badge Card (HoF)", "Upgrade Badge", "Attributes (Basic)",
     "Attributes (Standard)", "Attributes (Premium)", "Increase Attribute Limits",
     "Hotzone (Neutral)", "Hotzone (Cold)", "Hotzone (Hot)", "Cold Zone Removal",
@@ -130,6 +130,11 @@ app.get("/spin", async (req, res) => {
             : `Discord Coin (${Math.floor(Math.random() * 501) + 500})`; // 500-1000
     }
 
+    function getAttributePrize(type) {
+        const amount = Math.floor(Math.random() * 9) + 2; // 2-10
+        return `Attributes (${type}) (+${amount})`;
+    }
+
     let prize;
     const roll = Math.random();
 
@@ -140,9 +145,17 @@ app.get("/spin", async (req, res) => {
     } else if (roll < 0.60) { // 20% for Discord Coin
         prize = getDiscordCoinPrize();
     } else {
-        prize = prizes[Math.floor(Math.random() * prizes.length)];
-        if (prize === "EC") prize = getECPrize();
-        if (prize === "Discord Coin") prize = getDiscordCoinPrize();
+        let basePrize = prizes[Math.floor(Math.random() * prizes.length)];
+        if (basePrize === "EC") {
+            prize = getECPrize();
+        } else if (basePrize === "Discord Coin") {
+            prize = getDiscordCoinPrize();
+        } else if (basePrize.startsWith("Attributes")) {
+            const type = basePrize.match(/\(([^)]+)\)/)[1];
+            prize = getAttributePrize(type);
+        } else {
+            prize = basePrize;
+        }
     }
 
     await fetch(WEBHOOK_URL, {
