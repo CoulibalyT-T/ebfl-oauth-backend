@@ -88,6 +88,12 @@ app.get("/auth/check", (req, res) => {
     }
 });
 
+app.get("/logout", (req, res) => {
+    req.session.destroy(() => {
+        res.redirect(process.env.FRONTEND_URL || "https://ebfl-project.vercel.app");
+    });
+});
+
 app.get("/spin", async (req, res) => {
     if (!req.session.user || !req.session.user.isGM) return res.status(401).send("Unauthorized");
 
