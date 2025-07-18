@@ -96,7 +96,7 @@ app.get("/spin", async (req, res) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            content: `🎯 **${req.session.user.username}** shuffle and won **${prize}**!`
+            content: `**${req.session.user.username}** shuffle and won **${prize}**!`
         })
     });
 
