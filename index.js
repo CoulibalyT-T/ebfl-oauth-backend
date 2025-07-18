@@ -120,6 +120,8 @@ app.get("/spin", async (req, res) => {
         prize = getDiscordCoinPrize();
     } else {
         prize = prizes[Math.floor(Math.random() * prizes.length)];
+        if (prize === "EC") prize = getECPrize();
+        if (prize === "Discord Coin") prize = getDiscordCoinPrize();
     }
 
     await fetch(WEBHOOK_URL, {
