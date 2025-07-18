@@ -1,76 +1,104 @@
-const express = require('express');
-const fetch = require('node-fetch');
-const session = require('express-session');
+// EBFL OAuth Backend - GM protected spin system
+
+import express from "express";
+import session from "express-session";
+import fetch from "node-fetch";
+import cors from "cors";
+import dotenv from "dotenv";
+
+dotenv.config();
+
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
-const CLIENT_ID = '1395560873447391232';
-const CLIENT_SECRET = 'CFaM_rnR-iLUvEyNOT3JnV9B2shL4Fno';
-const REDIRECT_URI = 'https://ebfl-project.vercel.app/callback';
+const CLIENT_ID = process.env.CLIENT_ID;
+const CLIENT_SECRET = process.env.CLIENT_SECRET;
+const REDIRECT_URI = `${process.env.BASE_URL}/auth/callback`;
+const GUILD_ID = process.env.GUILD_ID;
+const GM_ROLE_ID = "1285962361689210890"; // your GM role ID
+const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
-const GM_ROLE_ID = '1285962361689210890';
-const GUILD_ID = '636938519037870080'; // Replace with your Discord server ID
-
-app.use(session({
-    secret: 'ebfl_spin_secret',
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "secret",
     resave: false,
-    saveUninitialized: true,
-}));
+    saveUninitialized: false,
+  })
+);
 
-app.get('/login', (req, res) => {
-    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify guilds guilds.members.read`;
-    res.redirect(discordAuthUrl);
+const prizes = [
+  "EP", "EC", "Discord Coin", "Badge Card (Bronze)", "Badge Card (Silver)",
+  "Badge Card (Gold)", "Badge Card (HoF)", "Upgrade Badge", "Attributes (Basic)",
+  "Attributes (Standard)", "Attributes (Premium)", "Increase Attribute Limits",
+  "Hotzone (Neutral)", "Hotzone (Cold)", "Hotzone (Hot)", "Cold Zone Removal",
+  "Dunk Package", "Layup Package"
+];
+
+app.get("/auth/discord", (req, res) => {
+  const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify%20guilds%20guilds.members.read`;
+  res.redirect(discordAuthUrl);
 });
 
-app.get('/callback', async (req, res) => {
-    const code = req.query.code;
-    if (!code) return res.send('No code provided');
+app.get("/auth/callback", async (req, res) => {
+  const code = req.query.code;
+  if (!code) return res.status(400).send("Missing code");
 
-    try {
-        const tokenResponse = await fetch('https://discord.com/api/oauth2/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: CLIENT_ID,
-                client_secret: CLIENT_SECRET,
-                grant_type: 'authorization_code',
-                code,
-                redirect_uri: REDIRECT_URI,
-            }),
-        });
-        const tokenData = await tokenResponse.json();
-        const accessToken = tokenData.access_token;
+  const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: CLIENT_ID,
+      client_secret: CLIENT_SECRET,
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: REDIRECT_URI,
+      scope: "identify guilds guilds.members.read"
+    })
+  });
 
-        const userResponse = await fetch('https://discord.com/api/users/@me', {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        const userData = await userResponse.json();
+  const tokenData = await tokenResponse.json();
+  const accessToken = tokenData.access_token;
 
-        const memberResponse = await fetch(`https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-        });
-        const memberData = await memberResponse.json();
+  const userResponse = await fetch("https://discord.com/api/users/@me", {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  const user = await userResponse.json();
 
-        const hasGMRole = memberData.roles && memberData.roles.includes(GM_ROLE_ID);
+  const memberResponse = await fetch(`https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`, {
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+  const member = await memberResponse.json();
 
-        req.session.user = {
-            id: userData.id,
-            username: userData.username,
-            discriminator: userData.discriminator,
-            avatar: userData.avatar,
-            isGM: hasGMRole,
-        };
+  const isGM = member.roles && member.roles.includes(GM_ROLE_ID);
+  if (!isGM) return res.status(403).send("You do not have GM role.");
 
-        res.redirect('/');
-    } catch (error) {
-        console.error('OAuth Error:', error);
-        res.send('OAuth failed, try again.');
-    }
+  req.session.user = { id: user.id, username: user.username, isGM };
+  res.redirect(process.env.FRONTEND_URL || "https://ebfl-project.vercel.app");
 });
 
-app.get('/user', (req, res) => {
-    if (!req.session.user) return res.json({ authenticated: false });
-    res.json({ authenticated: true, user: req.session.user });
+app.get("/auth/check", (req, res) => {
+  if (req.session.user && req.session.user.isGM) {
+    res.json({ username: req.session.user.username, isGM: true });
+  } else {
+    res.status(401).send("Unauthorized");
+  }
+});
+
+app.get("/spin", async (req, res) => {
+  if (!req.session.user || !req.session.user.isGM) return res.status(401).send("Unauthorized");
+  const prize = prizes[Math.floor(Math.random() * prizes.length)];
+
+  await fetch(WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      content: `🎯 **${req.session.user.username}** spun and won **${prize}**!`
+    })
+  });
+
+  res.json({ prize });
 });
 
 app.listen(port, () => console.log(`EBFL OAuth Backend running on port ${port}`));
