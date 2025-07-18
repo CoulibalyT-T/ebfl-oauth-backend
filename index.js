@@ -16,7 +16,7 @@ const GUILD_ID = process.env.GUILD_ID;
 const GM_ROLE_ID = "1285962361689210890";
 const WEBHOOK_URL = process.env.WEBHOOK_URL;
 
-app.use(cors({ origin: true, credentials: true }));
+app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
 app.use(express.json());
 app.set('trust proxy', 1); // enable secure cookies behind proxy
 
@@ -44,40 +44,50 @@ app.get("/auth/discord", (req, res) => {
 });
 
 app.get("/auth/callback", async (req, res) => {
+    console.log("Discord OAuth callback triggered.");
     const code = req.query.code;
     if (!code) return res.status(400).send("Missing code");
 
-    const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-            client_id: CLIENT_ID,
-            client_secret: CLIENT_SECRET,
-            grant_type: "authorization_code",
-            code,
-            redirect_uri: REDIRECT_URI,
-            scope: "identify guilds guilds.members.read"
-        })
-    });
+    try {
+        const tokenResponse = await fetch("https://discord.com/api/oauth2/token", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: new URLSearchParams({
+                client_id: CLIENT_ID,
+                client_secret: CLIENT_SECRET,
+                grant_type: "authorization_code",
+                code,
+                redirect_uri: REDIRECT_URI,
+                scope: "identify guilds guilds.members.read"
+            })
+        });
 
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
+        const tokenData = await tokenResponse.json();
+        const accessToken = tokenData.access_token;
 
-    const userResponse = await fetch("https://discord.com/api/users/@me", {
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    const user = await userResponse.json();
+        const userResponse = await fetch("https://discord.com/api/users/@me", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const user = await userResponse.json();
 
-    const memberResponse = await fetch(`https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`, {
-        headers: { Authorization: `Bearer ${accessToken}` }
-    });
-    const member = await memberResponse.json();
+        const memberResponse = await fetch(`https://discord.com/api/users/@me/guilds/${GUILD_ID}/member`, {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const member = await memberResponse.json();
 
-    const isGM = member.roles && member.roles.includes(GM_ROLE_ID);
-    if (!isGM) return res.status(403).send("You do not have GM role.");
+        const isGM = member.roles && member.roles.includes(GM_ROLE_ID);
+        if (!isGM) {
+            console.log(`User ${user.username} (${user.id}) does not have GM role.`);
+            return res.status(403).send("You do not have GM role.");
+        }
 
-    req.session.user = { id: user.id, username: user.username, isGM };
-    res.redirect(process.env.FRONTEND_URL || "https://ebfl-project.vercel.app");
+        req.session.user = { id: user.id, username: user.username, isGM };
+        console.log("Session user set:", req.session.user);
+        res.redirect(process.env.FRONTEND_URL || "https://ebfl-project.vercel.app");
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("OAuth callback error");
+    }
 });
 
 app.get("/auth/check", (req, res) => {
@@ -89,7 +99,12 @@ app.get("/auth/check", (req, res) => {
 });
 
 app.get("/logout", (req, res) => {
-    req.session.destroy(() => {
+    req.session.destroy(err => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send("Logout failed.");
+        }
+        res.clearCookie("connect.sid", { path: '/' });
         res.redirect(process.env.FRONTEND_URL || "https://ebfl-project.vercel.app");
     });
 });
@@ -141,4 +156,4 @@ app.get("/spin", async (req, res) => {
     res.json({ prize });
 });
 
-app.listen(port, () => console.log(`EBFL OAuth Backend running on port ${port}`));
+app.listen(port, () => console.log(`✅ EBFL OAuth Backend running on port ${port}`));
