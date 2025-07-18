@@ -18,7 +18,7 @@ app.use(session({
 }));
 
 app.get('/login', (req, res) => {
-    const discordAuthUrl = \`https://discord.com/api/oauth2/authorize?client_id=\${CLIENT_ID}&redirect_uri=\${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify guilds guilds.members.read\`;
+    const discordAuthUrl = `https://discord.com/api/oauth2/authorize?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&response_type=code&scope=identify guilds guilds.members.read`;
     res.redirect(discordAuthUrl);
 });
 
