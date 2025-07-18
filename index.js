@@ -34,7 +34,7 @@ const prizes = [
     "Badge Card (Bronze)", "Badge Card (Silver)",
     "Badge Card (Gold)", "Badge Card (HoF)", "Upgrade Badge", "Attributes (Basic)",
     "Attributes (Standard)", "Attributes (Premium)", "Increase Attribute Limits",
-    "Hotzone (Neutral)", "Hotzone (Cold)", "Hotzone (Hot)", "Cold Zone Removal",
+    "Spin Again", "Hotzone (Cold)", "Hotzone (Hot)", "Cold Zone Removal",
     "Dunk Package", "Layup Package"
 ];
 
