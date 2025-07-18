@@ -42,12 +42,12 @@ app.get('/callback', async (req, res) => {
         const accessToken = tokenData.access_token;
 
         const userResponse = await fetch('https://discord.com/api/users/@me', {
-            headers: { Authorization: \`Bearer \${accessToken}\` },
+            headers: { Authorization: `Bearer ${accessToken}` },
         });
         const userData = await userResponse.json();
 
         const memberResponse = await fetch(\`https://discord.com/api/users/@me/guilds/\${GUILD_ID}/member\`, {
-            headers: { Authorization: \`Bearer \${accessToken}\` },
+            headers: { Authorization: `Bearer ${accessToken}` },
         });
         const memberData = await memberResponse.json();
 
