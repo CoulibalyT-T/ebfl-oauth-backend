@@ -9,7 +9,7 @@ const CLIENT_SECRET = 'CFaM_rnR-iLUvEyNOT3JnV9B2shL4Fno';
 const REDIRECT_URI = 'https://ebfl-project.vercel.app/callback';
 
 const GM_ROLE_ID = '1285962361689210890';
-const GUILD_ID = 'YOUR_SERVER_ID_HERE'; // Replace with your Discord server ID
+const GUILD_ID = '636938519037870080'; // Replace with your Discord server ID
 
 app.use(session({
     secret: 'ebfl_spin_secret',
