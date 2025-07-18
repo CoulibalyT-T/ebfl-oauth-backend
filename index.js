@@ -31,7 +31,7 @@ app.use(session({
 }));
 
 const prizes = [
-    "EP", "EC", "Discord Coin", "Badge Card (Bronze)", "Badge Card (Silver)",
+    "EC", "Discord Coin", "Badge Card (Bronze)", "Badge Card (Silver)",
     "Badge Card (Gold)", "Badge Card (HoF)", "Upgrade Badge", "Attributes (Basic)",
     "Attributes (Standard)", "Attributes (Premium)", "Increase Attribute Limits",
     "Hotzone (Neutral)", "Hotzone (Cold)", "Hotzone (Hot)", "Cold Zone Removal",
@@ -90,13 +90,28 @@ app.get("/auth/check", (req, res) => {
 
 app.get("/spin", async (req, res) => {
     if (!req.session.user || !req.session.user.isGM) return res.status(401).send("Unauthorized");
-    const prize = prizes[Math.floor(Math.random() * prizes.length)];
+    function getEPPrize() {
+    // 10% chance for rare EP (15–20)
+    const rareChance = Math.random();
+    if (rareChance < 0.10) {
+        return `EP (${Math.floor(Math.random() * 6) + 15})`; // 15-20
+    } else {
+        return `EP (${Math.floor(Math.random() * 14) + 1})`; // 1-14
+    }
+}
+
+let prize;
+if (Math.random() < 0.2) { // 20% chance to get EP prize overall
+    prize = getEPPrize();
+} else {
+    prize = prizes[Math.floor(Math.random() * prizes.length)];
+}
 
     await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            content: `**${req.session.user.username}** shuffle and won **${prize}**!`
+            content: `**${req.session.user.username}** shuffle cards and won **${prize}**!`
         })
     });
 
